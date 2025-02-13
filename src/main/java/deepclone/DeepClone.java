@@ -1,6 +1,7 @@
 package deepclone;
 
 import static deepclone.DeepCloneCollectionUtils.createCollectionInstance;
+import static deepclone.DeepCloneCollectionUtils.createMapInstance;
 import static java.lang.reflect.Modifier.isFinal;
 import static java.lang.reflect.Modifier.isStatic;
 
@@ -9,6 +10,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 
 
 public class DeepClone {
@@ -34,6 +36,18 @@ public class DeepClone {
       cache.put(source.toString(), clonedObject);
     }
 
+    if (Collection.class.isAssignableFrom(classOfSource)) {
+      Collection<Object> collection = createCollectionInstance(classOfSource);
+      Collection<Object> sourceCollection = (Collection<Object>) source;
+      sourceCollection.forEach(element -> collection.add(deepClone(element)));
+      return (T) collection;
+    } else if (Map.class.isAssignableFrom(classOfSource)) {
+      Map<Object, Object> map = createMapInstance(classOfSource);
+      Map<Object, Object> sourceMap = (Map<Object, Object>) source;
+      sourceMap.forEach((key, value) -> map.put(deepClone(key), deepClone(value)));
+      return (T) map;
+    }
+
     try {
       for (Field field : declaredFields) {
         if (isStatic(field.getModifiers()) || isFinal(field.getModifiers())) {
@@ -50,7 +64,8 @@ public class DeepClone {
         else if (Collection.class.isAssignableFrom(fieldType)) {
           ParameterizedType parameterizedType = (ParameterizedType) field.getGenericType();
           Type[] actualTypeArguments = parameterizedType.getActualTypeArguments();
-          cloneCollectionFields(actualTypeArguments, field, fieldType, clonedObject, source);
+          Collection<Object> collection = cloneCollectionFields(actualTypeArguments, field, fieldType, clonedObject, source);
+          field.set(clonedObject, collection);
         }
         else {
           Object value = field.get(source);
@@ -64,20 +79,19 @@ public class DeepClone {
     return clonedObject;
   }
 
-  private static <T> void cloneCollectionFields(Type[] actualTypeArguments, Field field, Class<?> fieldType, T clonedObject, T source) throws IllegalAccessException {
+  private static <T> Collection<Object> cloneCollectionFields(Type[] actualTypeArguments, Field field, Class<?> fieldType, T clonedObject, T source) throws IllegalAccessException {
     if (actualTypeArguments.length == 1) {
       Collection<Object> collection = createCollectionInstance(fieldType);
       Collection<?> values = (Collection<?>) field.get(source);
       if (values != null) {
         values.forEach(value -> collection.add(deepClone(value)));
-        field.set(clonedObject, collection);
+        return collection;
       } else {
-        field.set(clonedObject, null);
+        return null;
       }
     }
-
     //Skipped the case when type arguments are not 1
-
+    return null;
   }
 
   private static <T> T validate(T target, T source) {

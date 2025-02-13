@@ -5,6 +5,8 @@ import static utils.Generator.generateAccount;
 import static utils.Generator.generateMan;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import model.Account;
 import model.Man;
@@ -13,6 +15,32 @@ import org.junit.Test;
 import utils.Generator;
 
 public class DeepCloneLightspeedTest {
+
+  @Test
+  public void deepClone_ArrayList() {
+    ArrayList<String> testArrayList = new ArrayList<>();
+    testArrayList.add("Hello");
+    testArrayList.add("World");
+
+    ArrayList<String> clonedArrayList = deepClone(testArrayList);
+    Assert.assertEquals(testArrayList, clonedArrayList);
+    Assert.assertNotSame(testArrayList, clonedArrayList);
+  }
+
+  @Test
+  public void deepClone_HashMap() {
+    HashMap<String, Account> testMap = new HashMap<>();
+    testMap.put("key1", generateAccount(generateMan()));
+    testMap.put("key2", generateAccount(generateMan()));
+
+    HashMap<String, Account> clonedMap = deepClone(testMap);
+    Assert.assertEquals(testMap.keySet(), clonedMap.keySet());
+    Assert.assertNotSame(testMap, clonedMap);
+    assertionsForClonedAccount(testMap.get("key1"), clonedMap.get("key1"));
+    assertionsForClonedAccount(testMap.get("key2"), clonedMap.get("key2"));
+
+  }
+
 
   @Test
   public void deepClone_allArgsConstructor_primitive_string_listOfString() {
